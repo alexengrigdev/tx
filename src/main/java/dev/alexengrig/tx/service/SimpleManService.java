@@ -49,7 +49,7 @@ public class SimpleManService implements ManService {
 
     private void requireBeFree(ManEntity man) {
         if (man.getPartner() != null) {
-            throw new IllegalStateException(MessageFormat.format("Man id={0} has already partner id={1}",
+            throw new IllegalStateException(MessageFormat.format("Man id={0} already has partner id={1}",
                     man.getId(), man.getPartner().getId()));
         }
     }
