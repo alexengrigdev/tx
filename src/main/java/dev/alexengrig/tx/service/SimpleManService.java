@@ -2,12 +2,14 @@ package dev.alexengrig.tx.service;
 
 import dev.alexengrig.tx.domain.Man;
 import dev.alexengrig.tx.entity.ManEntity;
+import dev.alexengrig.tx.exception.ManNotFoundException;
+import dev.alexengrig.tx.exception.NotFreeManException;
 import dev.alexengrig.tx.repository.ManRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.text.MessageFormat;
 import java.util.Objects;
 
 @Service
@@ -18,23 +20,26 @@ public class SimpleManService implements ManService {
 
     @Override
     public Man create(String name) {
-        ManEntity man = new ManEntity(name);
-        ManEntity savedMan = repository.save(man);
-        return converter.convert(savedMan);
+        Objects.requireNonNull(name, "Name must not be null");
+        ManEntity entity = new ManEntity(name);
+        ManEntity savedEntity = repository.save(entity);
+        return converter.convert(savedEntity);
     }
 
     @Override
     public Man get(Long manId) {
-        ManEntity entity = getManById(manId);
+        Objects.requireNonNull(manId, "Man id must not be null");
+        ManEntity entity = repository.findById(manId).orElseThrow(() -> new ManNotFoundException(manId));
         return converter.convert(entity);
     }
 
     @Override
-    public void link(Long manId, Long anotherManId) {
+    @Transactional
+    public void link(Long manId, Long anotherManId) throws NotFreeManException {
         Objects.requireNonNull(manId, "Man id must not be null");
         Objects.requireNonNull(manId, "Another man id must not be null");
-        ManEntity man = getManById(manId);
-        ManEntity anotherMan = getManById(anotherManId);
+        ManEntity man = getManForUpdateById(manId);
+        ManEntity anotherMan = getManForUpdateById(anotherManId);
         requireBeFree(man);
         requireBeFree(anotherMan);
         man.setPartner(anotherMan);
@@ -43,14 +48,13 @@ public class SimpleManService implements ManService {
         repository.save(anotherMan);
     }
 
-    private ManEntity getManById(Long manId) {
-        return repository.findById(manId).orElseThrow(() -> new IllegalArgumentException("No man by id: " + manId));
+    private ManEntity getManForUpdateById(Long manId) {
+        return repository.findForUpdateById(manId).orElseThrow(() -> new ManNotFoundException(manId));
     }
 
-    private void requireBeFree(ManEntity man) {
+    private void requireBeFree(ManEntity man) throws NotFreeManException {
         if (man.getPartner() != null) {
-            throw new IllegalStateException(MessageFormat.format("Man id={0} already has partner id={1}",
-                    man.getId(), man.getPartner().getId()));
+            throw new NotFreeManException(man.getId(), man.getPartner().getId());
         }
     }
 }
