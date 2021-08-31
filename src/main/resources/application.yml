@@ -9,7 +9,7 @@ spring:
         default_schema: txdb
         format_sql: true
   datasource:
-    url: jdbc:postgresql://localhost:5434/txdb
+    url: jdbc:postgresql://localhost:5434/txdb?currentSchema=txdb
     username: txdb
     password: txdb
   flyway:
