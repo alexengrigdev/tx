@@ -1,6 +1,7 @@
 package dev.alexengrig.tx.service;
 
 import dev.alexengrig.tx.domain.Man;
+import dev.alexengrig.tx.exception.NotFreeManException;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,9 +29,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 class SimpleManServiceTest {
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres")
-            .withDatabaseName("txdb-it")
-            .withUsername("txdb-it")
-            .withPassword("txdb-it");
+            .withDatabaseName("txdb")
+            .withUsername("txdb")
+            .withPassword("txdb");
 
     @Autowired
     ManService service;
@@ -65,7 +67,7 @@ class SimpleManServiceTest {
     }
 
     @Test
-    void should_link_twoMen() {
+    void should_link_twoMen() throws NotFreeManException {
         Man juliet = service.create("Juliet");
         Man romeo = service.create("Romeo");
         service.link(juliet.getId(), romeo.getId());
@@ -81,20 +83,23 @@ class SimpleManServiceTest {
         Man cyclops = service.create("Cyclops");
         Man jeanGrey = service.create("Jean Grey");
         Man wolverine = service.create("Wolverine");
+        AtomicInteger counter = new AtomicInteger();
         AtomicBoolean firstPairHasException = new AtomicBoolean();
         AtomicBoolean secondPairHasException = new AtomicBoolean();
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         executorService.submit(() -> {
             try {
+                counter.incrementAndGet();
                 service.link(cyclops.getId(), jeanGrey.getId());
-            } catch (IllegalStateException e) {
+            } catch (NotFreeManException e) {
                 firstPairHasException.set(true);
             }
         });
         executorService.submit(() -> {
             try {
+                counter.incrementAndGet();
                 service.link(jeanGrey.getId(), wolverine.getId());
-            } catch (IllegalStateException e) {
+            } catch (NotFreeManException e) {
                 secondPairHasException.set(true);
             }
         });
@@ -103,6 +108,7 @@ class SimpleManServiceTest {
             executorService.shutdownNow();
             fail("Timeout expired");
         }
+        assertEquals(2, counter.get(), "Number of method calls");
         Man updatedCyclops = service.get(cyclops.getId());
         Man updatedJeanGrey = service.get(jeanGrey.getId());
         Man updatedWolverine = service.get(wolverine.getId());
