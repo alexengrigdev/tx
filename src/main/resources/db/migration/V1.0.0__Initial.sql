@@ -1,1 +1,1 @@
-create schema if not exists txdb;
+CREATE SCHEMA IF NOT EXISTS txdb;
