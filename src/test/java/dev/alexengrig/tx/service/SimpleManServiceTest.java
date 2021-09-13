@@ -2,6 +2,7 @@ package dev.alexengrig.tx.service;
 
 import dev.alexengrig.tx.domain.Man;
 import dev.alexengrig.tx.exception.NotFreeManException;
+import dev.alexengrig.tx.helper.TestcontainersHelper;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,29 +19,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Testcontainers
 class SimpleManServiceTest {
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres")
-            .withDatabaseName("txdb")
-            .withUsername("txdb")
-            .withPassword("txdb");
+    static PostgreSQLContainer<?> postgres = TestcontainersHelper.createPostgreSQLContainer();
 
     @Autowired
     ManService service;
 
     @DynamicPropertySource
     static void postgresDatasourceSetup(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        TestcontainersHelper.setupDatasource(registry, postgres);
     }
 
     @Test
