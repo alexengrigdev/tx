@@ -11,6 +11,4 @@ import java.util.Optional;
 public interface ReadPessimisticLockedRepository<T, ID> extends Repository<T, ID> {
     @Lock(LockModeType.PESSIMISTIC_READ)
     Optional<T> findById(ID id);
-
-    <S extends T> S save(S entity);
 }

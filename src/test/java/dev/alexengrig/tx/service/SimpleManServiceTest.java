@@ -13,11 +13,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -75,32 +75,36 @@ class SimpleManServiceTest {
         Man cyclops = service.create("Cyclops");
         Man jeanGrey = service.create("Jean Grey");
         Man wolverine = service.create("Wolverine");
-        AtomicInteger counter = new AtomicInteger();
+        CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean firstPairHasException = new AtomicBoolean();
         AtomicBoolean secondPairHasException = new AtomicBoolean();
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         executorService.submit(() -> {
             try {
-                counter.incrementAndGet();
+                latch.await();
                 service.link(cyclops.getId(), jeanGrey.getId());
             } catch (NotFreeManException e) {
                 firstPairHasException.set(true);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         });
         executorService.submit(() -> {
             try {
-                counter.incrementAndGet();
+                latch.await();
                 service.link(jeanGrey.getId(), wolverine.getId());
             } catch (NotFreeManException e) {
                 secondPairHasException.set(true);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         });
+        latch.countDown();
         executorService.shutdown();
         if (!executorService.awaitTermination(2, TimeUnit.SECONDS)) {
             executorService.shutdownNow();
             fail("Timeout expired");
         }
-        assertEquals(2, counter.get(), "Number of method calls");
         Man updatedCyclops = service.get(cyclops.getId());
         Man updatedJeanGrey = service.get(jeanGrey.getId());
         Man updatedWolverine = service.get(wolverine.getId());

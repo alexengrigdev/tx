@@ -24,7 +24,7 @@ public class SimpleManService implements ManService {
     public Man create(String name) {
         Objects.requireNonNull(name, "Name must not be null");
         ManEntity entity = new ManEntity(name);
-        ManEntity savedEntity = readLockedRepository.save(entity);
+        ManEntity savedEntity = writeLockedRepository.save(entity);
         return converter.convert(savedEntity);
     }
 
