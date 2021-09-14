@@ -51,11 +51,19 @@ class SimpleManServiceTest {
 
     @Test
     void should_get_manById() {
-        Man juliet = service.create("Juliet");
-        assertNotNull(juliet.getId(), "Man's id");
-        juliet = service.get(juliet.getId());
-        assertEquals("Juliet", juliet.getName(), "Man's name");
-        assertNull(juliet.getPartnerId(), "Man's partner id");
+        Man tom = service.create("Tom");
+        assertNotNull(tom.getId(), "Man's id");
+        tom = service.get(tom.getId());
+        assertEquals("Tom", tom.getName(), "Man's name");
+        assertNull(tom.getPartnerId(), "Man's partner id");
+    }
+
+    @Test
+    void should_update_man() {
+        Man walterWhite = service.create("Walter White");
+        assertEquals("Walter White", walterWhite.getName(), "Man name");
+        Man heisenberg = service.update(walterWhite.getId(), "Heisenberg");
+        assertEquals("Heisenberg", heisenberg.getName(), "New man name");
     }
 
     @Test

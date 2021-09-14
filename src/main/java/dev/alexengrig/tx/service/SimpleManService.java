@@ -4,6 +4,7 @@ import dev.alexengrig.tx.domain.Man;
 import dev.alexengrig.tx.entity.ManEntity;
 import dev.alexengrig.tx.exception.ManNotFoundException;
 import dev.alexengrig.tx.exception.NotFreeManException;
+import dev.alexengrig.tx.exception.SameManNameException;
 import dev.alexengrig.tx.repository.ManReadLockedRepository;
 import dev.alexengrig.tx.repository.ManWriteLockedRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +37,16 @@ public class SimpleManService implements ManService {
         return converter.convert(entity);
     }
 
-    private ManEntity getMan(Long manId) {
-        return readLockedRepository.findById(manId).orElseThrow(() -> new ManNotFoundException(manId));
+    @Override
+    @Transactional
+    public Man update(Long manId, String name) {
+        Objects.requireNonNull(manId, "Man id must not be null");
+        Objects.requireNonNull(manId, "New man name must not be null");
+        ManEntity entity = getManForUpdate(manId);
+        requireNameNotEquals(manId, entity.getName(), name);
+        entity.setName(name);
+        ManEntity updatedEntity = writeLockedRepository.save(entity);
+        return converter.convert(updatedEntity);
     }
 
     @Override
@@ -55,8 +64,18 @@ public class SimpleManService implements ManService {
         writeLockedRepository.save(anotherMan);
     }
 
+    private ManEntity getMan(Long manId) {
+        return readLockedRepository.findById(manId).orElseThrow(() -> new ManNotFoundException(manId));
+    }
+
     private ManEntity getManForUpdate(Long manId) {
         return writeLockedRepository.findById(manId).orElseThrow(() -> new ManNotFoundException(manId));
+    }
+
+    private void requireNameNotEquals(Long manId, String oldName, String newName) {
+        if (oldName.equals(newName)) {
+            throw new SameManNameException(manId, newName);
+        }
     }
 
     private void requireBeFree(ManEntity man) throws NotFreeManException {

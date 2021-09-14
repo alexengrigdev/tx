@@ -8,5 +8,7 @@ public interface ManService {
 
     Man get(Long manId);
 
+    Man update(Long manId, String name);
+
     void link(Long manId, Long anotherManId) throws NotFreeManException;
 }
