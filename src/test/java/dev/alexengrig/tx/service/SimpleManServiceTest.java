@@ -3,6 +3,7 @@ package dev.alexengrig.tx.service;
 import dev.alexengrig.tx.domain.Man;
 import dev.alexengrig.tx.exception.ManNotFoundException;
 import dev.alexengrig.tx.exception.NotFreeManException;
+import dev.alexengrig.tx.exception.SameManNameException;
 import dev.alexengrig.tx.helper.TestcontainersHelper;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -73,6 +74,22 @@ class SimpleManServiceTest {
         Man heisenberg = service.update(walterWhite.getId(), "Heisenberg");
         assertEquals(walterWhite.getId(), heisenberg.getId(), "Man id");
         assertEquals("Heisenberg", heisenberg.getName(), "New man name");
+    }
+
+    @Test
+    void should_update_manTwice() {
+        Man farrokhBulsara = service.create("Farrokh Bulsara");
+        assertEquals("Farrokh Bulsara", farrokhBulsara.getName(), "Man name");
+        String newName = "Freddie Mercury";
+        Runnable updateTask = () -> {
+            Man freddieMercury = service.update(farrokhBulsara.getId(), newName);
+            assertEquals(farrokhBulsara.getId(), freddieMercury.getId(), "Man id");
+            assertEquals(newName, freddieMercury.getName(), "New man name");
+        };
+        updateTask.run();
+        SameManNameException exception = assertThrows(SameManNameException.class, updateTask::run);
+        assertEquals(farrokhBulsara.getId(), exception.getManId());
+        assertEquals(newName, exception.getManName());
     }
 
     @Test
