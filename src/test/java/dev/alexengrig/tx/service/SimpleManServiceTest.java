@@ -1,6 +1,7 @@
 package dev.alexengrig.tx.service;
 
 import dev.alexengrig.tx.domain.Man;
+import dev.alexengrig.tx.exception.ManNotFoundException;
 import dev.alexengrig.tx.exception.NotFreeManException;
 import dev.alexengrig.tx.helper.TestcontainersHelper;
 import lombok.SneakyThrows;
@@ -59,10 +60,18 @@ class SimpleManServiceTest {
     }
 
     @Test
+    void should_notFound_manById() {
+        long manId = -1L;
+        ManNotFoundException exception = assertThrows(ManNotFoundException.class, () -> service.get(manId));
+        assertEquals(manId, exception.getManId(), "Man id");
+    }
+
+    @Test
     void should_update_man() {
         Man walterWhite = service.create("Walter White");
         assertEquals("Walter White", walterWhite.getName(), "Man name");
         Man heisenberg = service.update(walterWhite.getId(), "Heisenberg");
+        assertEquals(walterWhite.getId(), heisenberg.getId(), "Man id");
         assertEquals("Heisenberg", heisenberg.getName(), "New man name");
     }
 
@@ -93,7 +102,7 @@ class SimpleManServiceTest {
                 service.link(cyclops.getId(), jeanGrey.getId());
             } catch (NotFreeManException e) {
                 firstPairHasException.set(true);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ignore) {
                 Thread.currentThread().interrupt();
             }
         });
@@ -103,7 +112,7 @@ class SimpleManServiceTest {
                 service.link(jeanGrey.getId(), wolverine.getId());
             } catch (NotFreeManException e) {
                 secondPairHasException.set(true);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ignore) {
                 Thread.currentThread().interrupt();
             }
         });
