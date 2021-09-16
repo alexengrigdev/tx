@@ -17,6 +17,11 @@ spring:
     default-schema: txdb
 logging:
   level:
+    dev:
+      alexengrig:
+        service:
+          man:
+            simple: trace
     org:
       springframework:
         transaction: trace
