@@ -8,6 +8,7 @@ import dev.alexengrig.tx.exception.SameManNameException;
 import dev.alexengrig.tx.repository.ManReadLockedRepository;
 import dev.alexengrig.tx.repository.ManWriteLockedRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j(topic = "dev.alexengrig.service.man.simple")
 public class SimpleManService implements ManService {
     private final ManWriteLockedRepository writeLockedRepository;
     private final ManReadLockedRepository readLockedRepository;
@@ -42,10 +44,13 @@ public class SimpleManService implements ManService {
     public Man update(Long manId, String name) {
         Objects.requireNonNull(manId, "Man id must not be null");
         Objects.requireNonNull(manId, "New man name must not be null");
+        log.trace("Getting Man id={} for update: name=\"{}\"", manId, name);
         ManEntity entity = getManForUpdate(manId);
+        log.trace("Got {} for update: name=\"{}\"", entity, name);
         requireNameNotEquals(manId, entity.getName(), name);
         entity.setName(name);
         ManEntity updatedEntity = writeLockedRepository.save(entity);
+        log.trace("Updated {} for: name=\"{}\"", updatedEntity, name);
         return converter.convert(updatedEntity);
     }
 
