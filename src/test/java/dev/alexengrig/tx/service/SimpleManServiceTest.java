@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -91,6 +92,63 @@ class SimpleManServiceTest {
         SameManNameException exception = assertThrows(SameManNameException.class, updateTask::run);
         assertEquals(farrokhBulsara.getId(), exception.getManId());
         assertEquals(newName, exception.getManName());
+    }
+
+    @Test
+    @SneakyThrows(InterruptedException.class)
+    void should_update_manTwice_asynchronously() {
+        String name = "Brian Hugh Warner";
+        Man brianHughWarner = service.create(name);
+        assertEquals(name, brianHughWarner.getName(), "Man name");
+        String newName = "Marilyn Manson";
+        AtomicReference<SameManNameException> firstException = new AtomicReference<>();
+        AtomicReference<SameManNameException> secondException = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        Runnable updateTask = () -> {
+            Man marilynManson = service.update(brianHughWarner.getId(), newName);
+            assertEquals(brianHughWarner.getId(), marilynManson.getId(), "Man id");
+            assertEquals(newName, marilynManson.getName(), "New man name");
+        };
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        executorService.execute(() -> {
+            try {
+                latch.await();
+                updateTask.run();
+            } catch (SameManNameException e) {
+                firstException.set(e);
+            } catch (InterruptedException ignore1) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        executorService.execute(() -> {
+            try {
+                latch.await();
+                updateTask.run();
+            } catch (SameManNameException e) {
+                secondException.set(e);
+            } catch (InterruptedException ignore) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        latch.countDown();
+        executorService.shutdown();
+        if (!executorService.awaitTermination(2, TimeUnit.SECONDS)) {
+            executorService.shutdownNow();
+            fail("Timeout expired");
+        }
+        SameManNameException exception;
+        if (firstException.get() != null) {
+            assertNull(secondException.get(), "Second exception");
+            exception = firstException.get();
+        } else if (secondException.get() != null) {
+            assertNull(firstException.get(), "First exception");
+            exception = secondException.get();
+        } else {
+            fail("No exception");
+            return;
+        }
+        assertEquals(brianHughWarner.getId(), exception.getManId(), "Man id");
+        assertEquals(newName, exception.getManName(), "Man name");
     }
 
     @Test
