@@ -19,9 +19,8 @@ logging:
   level:
     dev:
       alexengrig:
-        service:
-          man:
-            simple: trace
+        tx:
+          service: trace
     org:
       springframework:
         transaction: trace

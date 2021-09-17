@@ -15,9 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j(topic = "dev.alexengrig.service.man.simple")
 public class SimpleManService implements ManService {
     private final ManWriteLockedRepository writeLockedRepository;
     private final ManReadLockedRepository readLockedRepository;
