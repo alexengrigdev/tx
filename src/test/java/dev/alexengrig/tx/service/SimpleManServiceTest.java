@@ -78,8 +78,9 @@ class SimpleManServiceTest {
 
     @Test
     void should_update_manTwice() {
-        Man farrokhBulsara = service.create("Farrokh Bulsara");
-        assertEquals("Farrokh Bulsara", farrokhBulsara.getName(), "Man name");
+        String name = "Farrokh Bulsara";
+        Man farrokhBulsara = service.create(name);
+        assertEquals(name, farrokhBulsara.getName(), "Man name");
         String newName = "Freddie Mercury";
         Runnable updateTask = () -> {
             Man freddieMercury = service.update(farrokhBulsara.getId(), newName);
