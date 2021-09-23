@@ -15,21 +15,17 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.*;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Testcontainers
-@SuppressWarnings("SqlResolve")
+@SuppressWarnings({"SqlResolve", "SqlNoDataSourceInspection"})
 class ReadUncommittedTest {
     @Container
     static MySQLContainer<?> mysql = new MySQLContainer<>("mysql");
@@ -112,6 +108,82 @@ class ReadUncommittedTest {
 
         Person samePerson = findPersonById(personId);
         assertEquals(person.getName(), samePerson.getName(), "Person's name");
+    }
+
+    @Test
+    @SneakyThrows(InterruptedException.class)
+    void should_do_unrepeatableRead() {
+        assertEquals(TransactionDefinition.ISOLATION_READ_UNCOMMITTED, txTemplate.getIsolationLevel(), "READ_UNCOMMITTED");
+
+        Person jack = createPerson(1, "Jack");
+        Person jacob = createPerson(2, "Jacob");
+        Person john = createPerson(3, "John");
+        String namePrefix = "Ja";
+        assertTrue(jack.getName().startsWith(namePrefix), "Jack's name starts with 'Ja'");
+        assertTrue(jacob.getName().startsWith(namePrefix), "Jacob's name starts with 'Ja'");
+        assertFalse(john.getName().startsWith(namePrefix), "John's name doesn't start with 'Ja'");
+
+        CountDownLatch onFirstFetch = new CountDownLatch(1);
+        CountDownLatch onSecondFetch = new CountDownLatch(1);
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+        executorService.execute(() -> txTemplate.executeWithoutResult(status -> {
+            System.out.println("1: Start in " + Thread.currentThread().getName());
+            Supplier<Set<String>> personNamesSupplier = () -> {
+                List<Person> persons = jdbcTemplate.query("""
+                        SELECT *
+                        FROM person
+                        WHERE name LIKE CONCAT(?, '%')
+                        """, new PersonRowMapper(), namePrefix);
+                assertEquals(2, persons.size(), "Number of persons");
+                return persons.stream()
+                        .map(Person::getName)
+                        .collect(Collectors.toSet());
+            };
+            Set<String> names = personNamesSupplier.get();
+            System.out.println("1: Selected");
+            assertTrue(names.contains("Jack"), "List of name doesn't contain 'Jack'");
+            assertTrue(names.contains("Jacob"), "List of name doesn't contain 'Jacob'");
+            System.out.println("1: Release 2");
+            onFirstFetch.countDown();
+            try {
+                System.out.println("1: Wait 2");
+                onSecondFetch.await();
+                System.out.println("1: Released");
+            } catch (InterruptedException e) {
+                fail(e);
+            }
+            names = personNamesSupplier.get();
+            System.out.println("1: Selected again");
+            assertFalse(names.contains("Jack"), "List of name contains 'Jack'");
+            assertTrue(names.contains("Jackson"), "List of name doesn't contain 'Jackson'");
+            assertTrue(names.contains("Jacob"), "List of name doesn't contain 'Jacob'");
+        }));
+        executorService.execute(() -> txTemplate.executeWithoutResult(status -> {
+            System.out.println("2: Start in " + Thread.currentThread().getName());
+            try {
+                System.out.println("2: Wait 1");
+                onFirstFetch.await();
+                System.out.println("2: Released");
+            } catch (InterruptedException e) {
+                fail(e);
+            }
+            assertEquals(1, jdbcTemplate.update("""
+                            UPDATE person
+                            SET name = 'Jackson'
+                            WHERE id = ?
+                            """, jack.getId()),
+                    "Update Jack's name");
+            System.out.println("2: Updated");
+            System.out.println("2: Release 1");
+            onSecondFetch.countDown();
+        }));
+
+        executorService.shutdown();
+        if (!executorService.awaitTermination(3, TimeUnit.SECONDS)) {
+            executorService.shutdownNow();
+            fail("Timeout expired");
+        }
     }
 
     @Test
