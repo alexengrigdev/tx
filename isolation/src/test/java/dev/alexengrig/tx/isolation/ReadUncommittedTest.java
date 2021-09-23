@@ -184,6 +184,9 @@ class ReadUncommittedTest {
             executorService.shutdownNow();
             fail("Timeout expired");
         }
+
+        Person updatedJack = findPersonById(jack.getId());
+        assertEquals("Jackson", updatedJack.getName(), "Updated Jack's name");
     }
 
     @Test
