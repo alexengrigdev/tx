@@ -190,6 +190,74 @@ class ReadUncommittedTest {
     }
 
     @Test
+    @SneakyThrows({InterruptedException.class, ExecutionException.class})
+    void should_do_phantomRead() {
+        assertEquals(TransactionDefinition.ISOLATION_READ_UNCOMMITTED, txTemplate.getIsolationLevel(), "READ_UNCOMMITTED");
+
+        Person tom = createPerson(1, "Tom");
+        Person jerry = createPerson(2, "Jerry");
+
+        Supplier<List<Person>> allPersonsSupplier = () -> jdbcTemplate.query("""
+                SELECT *
+                FROM person
+                """, new PersonRowMapper());
+        List<Person> allPersons = allPersonsSupplier.get();
+        assertEquals(2, allPersons.size(), "Number of persons");
+
+        CountDownLatch onFirstFetch = new CountDownLatch(1);
+        CountDownLatch onSecondFetch = new CountDownLatch(1);
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+        Future<List<Person>> personsFuture = executorService.submit(() -> txTemplate.execute(status -> {
+            System.out.println("1: Start in " + Thread.currentThread().getName());
+            List<Person> persons = allPersonsSupplier.get();
+            System.out.println("1: Selected");
+            assertEquals(2, persons.size(), "Number of persons");
+            assertTrue(persons.contains(tom), "List of persons contains 'Tom'");
+            assertTrue(persons.contains(jerry), "List of persons contains 'Jerry'");
+            System.out.println("1: Release 2");
+            onFirstFetch.countDown();
+            try {
+                System.out.println("1: Wait 2");
+                onSecondFetch.await();
+                System.out.println("1: Released");
+            } catch (InterruptedException e) {
+                fail(e);
+            }
+            persons = allPersonsSupplier.get();
+            System.out.println("1: Selected again");
+            assertEquals(3, persons.size(), "Number of persons");
+            return persons;
+        }));
+        executorService.execute(() -> txTemplate.executeWithoutResult(status -> {
+            System.out.println("2: Start in " + Thread.currentThread().getName());
+            try {
+                System.out.println("2: Wait 1");
+                onFirstFetch.await();
+                System.out.println("2: Released");
+            } catch (InterruptedException e) {
+                fail(e);
+            }
+            createPerson(3, "Spike");
+            System.out.println("2: Inserted");
+            System.out.println("2: Release 1");
+            onSecondFetch.countDown();
+        }));
+
+        executorService.shutdown();
+        if (!executorService.awaitTermination(3, TimeUnit.SECONDS)) {
+            executorService.shutdownNow();
+            fail("Timeout expired");
+        }
+
+        List<Person> persons = personsFuture.get();
+        Set<String> names = persons.stream().map(Person::getName).collect(Collectors.toSet());
+        assertTrue(names.contains("Tom"), "List of names doesn't contain 'Tom'");
+        assertTrue(names.contains("Jerry"), "List of names doesn't contain 'Jerry'");
+        assertTrue(names.contains("Spike"), "List of names doesn't contain 'Spike'");
+    }
+
+    @Test
     void should_load() {
         assertTrue(mysql.isRunning(), "MySQL container must be running");
         assertNotNull(jdbcTemplate, "No JdbcTemplate");
