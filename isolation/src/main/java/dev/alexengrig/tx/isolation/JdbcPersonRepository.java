@@ -34,6 +34,14 @@ public class JdbcPersonRepository implements PersonRepository {
     }
 
     @Override
+    public List<Person> selectAll() {
+        return jdbcTemplate.query("""
+                SELECT *
+                FROM person
+                """, rowMapper);
+    }
+
+    @Override
     public boolean updateNameById(int personId, String newPersonName) {
         int rows = jdbcTemplate.update("""
                 UPDATE person

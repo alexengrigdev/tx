@@ -7,6 +7,8 @@ public interface PersonRepository {
 
     Person selectById(int personId);
 
+    List<Person> selectAll();
+
     boolean updateNameById(int personId, String newPersonName);
 
     List<Person> selectAllByNameStartsWith(String namePrefix);
