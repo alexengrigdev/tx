@@ -177,21 +177,25 @@ class ReadUncommittedTest {
             assertTrue(names.contains("Jackson"), "List of name doesn't contain 'Jackson'");
             assertTrue(names.contains("Jacob"), "List of name doesn't contain 'Jacob'");
         }));
-        executorService.execute(() -> txTemplate.executeWithoutResult(status -> {
-            System.out.println("2: Start in " + Thread.currentThread().getName());
-            try {
-                System.out.println("2: Wait 1");
-                onFirstFetch.await();
-                System.out.println("2: Released");
-            } catch (InterruptedException e) {
-                fail(e);
-            }
-            assertTrue(personRepository.updateNameById(jack.getId(), "Jackson"),
-                    "Update Jack's name");
-            System.out.println("2: Updated");
+        executorService.execute(() -> {
+            txTemplate.executeWithoutResult(status -> {
+                System.out.println("2: Start in " + Thread.currentThread().getName());
+                try {
+                    System.out.println("2: Wait 1");
+                    onFirstFetch.await();
+                    System.out.println("2: Released");
+                } catch (InterruptedException e) {
+                    fail(e);
+                }
+                assertTrue(personRepository.updateNameById(jack.getId(), "Jackson"),
+                        "Update Jack's name");
+                System.out.println("2: Updated");
+                System.out.println("2: Commit");
+            });
+            System.out.println("2: Committed");
             System.out.println("2: Release 1");
             onSecondFetch.countDown();
-        }));
+        });
 
         executorService.shutdown();
         if (!executorService.awaitTermination(3, TimeUnit.SECONDS)) {
