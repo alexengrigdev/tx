@@ -59,4 +59,12 @@ public class JdbcPersonRepository implements PersonRepository {
                 WHERE name LIKE CONCAT(?, '%')
                 """, rowMapper, namePrefix);
     }
+
+    @Override
+    public boolean deleteById(int personId) {
+        int rows = jdbcTemplate.update("""
+                DELETE FROM person WHERE id = ?
+                """, personId);
+        return rows == 1;
+    }
 }

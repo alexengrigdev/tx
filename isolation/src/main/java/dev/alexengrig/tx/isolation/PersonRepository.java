@@ -12,4 +12,6 @@ public interface PersonRepository {
     boolean updateNameById(int personId, String newPersonName);
 
     List<Person> selectAllByNameStartsWith(String namePrefix);
+
+    boolean deleteById(int personId);
 }
