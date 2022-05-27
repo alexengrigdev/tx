@@ -1,12 +1,12 @@
 plugins {
-    id 'org.springframework.boot' version '2.5.5'
+    id 'org.springframework.boot' version '2.7.0'
     id 'io.spring.dependency-management' version '1.0.11.RELEASE'
     id 'java'
 }
 
 group = 'dev.alexengrig.tx'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = JavaVersion.VERSION_16
+sourceCompatibility = JavaVersion.VERSION_17
 
 configurations {
     compileOnly {
@@ -19,7 +19,7 @@ repositories {
 }
 
 ext {
-    set('testcontainersVersion', "1.16.0")
+    set('testcontainersVersion', "1.17.2")
 }
 
 dependencies {
