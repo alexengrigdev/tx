@@ -34,8 +34,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @SpringBootTest
 @Testcontainers
-@SuppressWarnings({"SqlResolve", "SqlNoDataSourceInspection"})
+@SuppressWarnings({"SqlResolve", "SqlNoDataSourceInspection", "SpringJavaInjectionPointsAutowiringInspection"})
 class ReadCommittedTest {
+    @SuppressWarnings("resource")
     @Container
     static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql")
             .withReuse(true);
