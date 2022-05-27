@@ -81,7 +81,7 @@ public class RepeatableReadTest {
 
     @Test
     @SneakyThrows({InterruptedException.class, ExecutionException.class})
-    void should_doesNot_dirtyRead() {
+    void shouldNot_do_dirtyRead() {
         int personId = 1;
         String personName = "Bill";
         Person person = personRepository.insert(personId, personName);
@@ -138,7 +138,7 @@ public class RepeatableReadTest {
 
     @Test
     @SneakyThrows(InterruptedException.class)
-    void should_doesNot_unrepeatableRead() {
+    void shouldNot_do_unrepeatableRead() {
         Person jack = personRepository.insert(1, "Jack");
         Person jacob = personRepository.insert(2, "Jacob");
         Person john = personRepository.insert(3, "John");

@@ -81,7 +81,7 @@ class ReadCommittedTest {
 
     @Test
     @SneakyThrows({InterruptedException.class, ExecutionException.class})
-    void should_doesNot_dirtyRead() {
+    void shouldNot_do_dirtyRead() {
         int personId = 1;
         String personName = "Bill";
         Person person = personRepository.insert(personId, personName);
