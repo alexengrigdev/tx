@@ -37,7 +37,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 @SuppressWarnings({"SqlResolve", "SqlNoDataSourceInspection"})
 class ReadUncommittedTest {
     @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql");
+    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql")
+            .withReuse(true);
 
     @Autowired
     PersonRepository personRepository;
@@ -56,7 +57,7 @@ class ReadUncommittedTest {
     @BeforeEach
     void beforeEach() {
         jdbcTemplate.execute("""
-                CREATE TABLE person (
+                CREATE TABLE IF NOT EXISTS person (
                     id INT PRIMARY KEY,
                     name TEXT NOT NULL
                 )
@@ -66,7 +67,7 @@ class ReadUncommittedTest {
 
     @AfterEach
     void afterEach() {
-        jdbcTemplate.execute("DROP TABLE person");
+        jdbcTemplate.execute("TRUNCATE TABLE person");
     }
 
     @Test
