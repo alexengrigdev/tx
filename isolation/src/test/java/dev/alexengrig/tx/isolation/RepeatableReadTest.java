@@ -3,7 +3,6 @@ package dev.alexengrig.tx.isolation;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -136,7 +135,7 @@ public class RepeatableReadTest {
         assertEquals(person.getName(), samePerson.getName(), "Person's name");
     }
 
-    @RepeatedTest(10)
+    @Test
     @SneakyThrows(InterruptedException.class)
     void should_doesNot_unrepeatableRead() {
         Person jack = personRepository.insert(1, "Jack");
