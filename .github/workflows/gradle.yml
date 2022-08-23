@@ -35,5 +35,4 @@ jobs:
         gradle-version: current
 
     - name: Build isolation project
-      working-directory: ./isolation
       run: gradle build
