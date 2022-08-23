@@ -11,6 +11,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -35,25 +36,13 @@ import static org.junit.jupiter.api.Assertions.fail;
 @SpringBootTest
 @Testcontainers
 @SuppressWarnings({"SqlResolve", "SqlNoDataSourceInspection", "SpringJavaInjectionPointsAutowiringInspection"})
-public class RepeatableReadTest {
-    @SuppressWarnings("resource")
-    @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql")
-            .withReuse(true);
-
+public class RepeatableReadTest extends DbContainerTest {
     @Autowired
     PersonRepository personRepository;
     @Autowired
     JdbcTemplate jdbcTemplate;
     @Autowired
     TransactionTemplate txTemplate;
-
-    @DynamicPropertySource
-    static void setMySQLDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getDatabaseName);
-    }
 
     @BeforeEach
     void beforeEach() {
@@ -73,7 +62,6 @@ public class RepeatableReadTest {
 
     @Test
     void should_load() {
-        assertTrue(MYSQL.isRunning(), "MySQL must be running");
         assertNotNull(personRepository, "PersonRepository");
         assertNotNull(jdbcTemplate, "JdbcTemplate");
         assertNotNull(txTemplate, "TransactionTemplate");
